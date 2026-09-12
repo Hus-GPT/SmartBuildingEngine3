@@ -8,9 +8,15 @@ from app.settings import settings
 def main() -> None:
     if not settings.telegram_bot_token:
         raise RuntimeError("TELEGRAM_BOT_TOKEN is required")
-    engine, _ = build_database(settings.database_url)
+    if not settings.telegram_owner_id:
+        raise RuntimeError("TELEGRAM_OWNER_ID is required")
+    engine, session_factory = build_database(settings.database_url)
     initialize_database(engine)
-    application = build_telegram_application(settings.telegram_bot_token, settings.telegram_owner_id)
+    application = build_telegram_application(
+        settings.telegram_bot_token,
+        settings.telegram_owner_id,
+        session_factory,
+    )
     application.run_polling(allowed_updates=None)
 
 
