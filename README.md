@@ -5,27 +5,39 @@ Telegram-first personal building management system.
 ## Architecture
 
 - `app/domain`: business entities and rules
-- `app/application`: use cases and orchestration
-- `app/infrastructure`: persistence, files, PDF generation, audit
+- `app/application`: Telegram-independent use cases
+- `app/infrastructure`: SQLAlchemy persistence, file storage, PDF rendering, audit records
 - `app/interfaces/telegram`: Telegram adapter only
-- `tests`: automated business-rule tests
+- `tests`: automated business-rule and persistence tests
 
 The business/application layers do not depend on Telegram.
 
-## First release scope
+## Current scope
 
-- Single building
+- Single building / single owner
 - Apartments and shops
-- Tenants and historical leases
-- Electricity and water meters
+- Tenants with multiple phones and historical leases
+- One active lease per unit
+- Electricity and water meters with non-decreasing readings
 - Monthly combined utility/shared-expense invoices
 - Partial payments
 - File/image storage
-- Immutable approved/archived invoices
+- Immutable archived invoices
 - Explicit confirmation for sensitive writes
 - Audit log
-- Arabic invoice output as PDF
+- PDF invoice rendering
 
 ## Safety principle
 
-No destructive or financially significant write is executed silently. The system validates the operation, presents a clear warning, requires explicit confirmation, then records the operation in the audit log.
+No destructive or financially significant write is executed silently. The system validates the operation, requires explicit confirmation, then records the operation in the audit log.
+
+## Development status
+
+The project is being rebuilt from a clean foundation. The persistence schema, core transactional use cases, owner-only Telegram boundary, file storage, PDF renderer, and initial tests are now in place. Telegram workflows and full invoice lifecycle are next.
+
+## Run
+
+1. Install dependencies: `pip install -e .[test]`
+2. Copy `.env.example` to `.env` and set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_OWNER_ID`.
+3. Run: `python -m app.main`
+4. Test: `pytest`
