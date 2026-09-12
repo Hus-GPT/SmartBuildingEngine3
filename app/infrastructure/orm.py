@@ -80,6 +80,14 @@ class MeterReadingRecord(Base):
     unit: Mapped[UnitRecord] = relationship(back_populates="meters")
 
 
+class BuildingMeterReadingRecord(Base):
+    __tablename__ = "building_meter_readings"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    meter_type: Mapped[str] = mapped_column(String(30), index=True)
+    reading_date: Mapped[date] = mapped_column(Date)
+    value: Mapped[Decimal] = mapped_column(Numeric(18, 3))
+
+
 class InvoiceRecord(Base):
     __tablename__ = "invoices"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
