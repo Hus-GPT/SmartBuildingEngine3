@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     currency: str = "YER"
     electricity_price: Decimal = Decimal("0")
     water_price: Decimal = Decimal("0")
-    invoice_font_path: Path | None = None
+    invoice_font_path: Path = Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
