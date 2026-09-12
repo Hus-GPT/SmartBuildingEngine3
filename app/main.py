@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from telegram.ext import CallbackQueryHandler, CommandHandler
+from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler, filters
 
 from app.infrastructure.database import build_database, initialize_database
 from app.interfaces.telegram.bot import build_telegram_application
 from app.interfaces.telegram.documents import document_callback, document_command, witness_callback, witness_command
 from app.interfaces.telegram.invoices import invoice_callback, invoice_command
 from app.interfaces.telegram.lease_lifecycle import endlease_command, expiring_command, lease_lifecycle_callback, renewlease_command
+from app.interfaces.telegram.lease_wizard import lease_wizard_callback, lease_wizard_file, lease_wizard_text, newlease_command
 from app.interfaces.telegram.payments import payment_callback, pay_command
 from app.settings import settings
 
@@ -19,6 +20,10 @@ def main() -> None:
     engine, session_factory = build_database(settings.database_url)
     initialize_database(engine)
     application = build_telegram_application(settings.telegram_bot_token, settings.telegram_owner_id, session_factory, settings.storage_dir)
+    application.add_handler(CommandHandler("newlease", newlease_command), group=-2)
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, lease_wizard_text), group=-2)
+    application.add_handler(MessageHandler(filters.Document.ALL | filters.PHOTO, lease_wizard_file), group=-2)
+    application.add_handler(CallbackQueryHandler(lease_wizard_callback, pattern=r"^complete_lease_(confirm|cancel)$"), group=-2)
     application.add_handler(CommandHandler("invoice", invoice_command))
     application.add_handler(CommandHandler("pay", pay_command))
     application.add_handler(CommandHandler("doc", document_command))
