@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "smart-building-engine"
+version = "0.1.0"
+description = "Telegram-first personal building management system"
+requires-python = ">=3.12"
+dependencies = [
+  "SQLAlchemy>=2.0,<3.0",
+  "pydantic>=2.7,<3.0",
+  "pydantic-settings>=2.2,<3.0",
+  "python-telegram-bot>=22,<23",
+  "reportlab>=4.0,<5.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<9"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
