@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domain.models import LeaseStatus
 from app.domain.rules import BusinessRuleError
-from app.infrastructure.orm import LeaseRecord
+from app.infrastructure.orm import AuditLogRecord, LeaseRecord
 
 
 class LeaseService:
@@ -27,6 +27,7 @@ class LeaseService:
             raise BusinessRuleError("Lease end date cannot precede its start date.")
         lease.end_date = end_date
         lease.status = LeaseStatus.ENDED.value
+        self.session.add(AuditLogRecord(operation="end_lease", entity_type="lease", entity_id=lease.id, details=str({"end_date": end_date.isoformat()}), created_at=datetime.now(timezone.utc)))
         return lease
 
     def active_lease(self, unit_id: int) -> LeaseRecord | None:
