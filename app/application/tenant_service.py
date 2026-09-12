@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from sqlalchemy.orm import Session
 
 from app.domain.rules import BusinessRuleError
-from app.infrastructure.orm import TenantRecord
+from app.infrastructure.orm import AuditLogRecord, TenantRecord
 
 
 class TenantService:
@@ -22,6 +24,7 @@ class TenantService:
             raise BusinessRuleError("Identity type and identity number are required.")
         tenant.identity_type = identity_type.strip()
         tenant.identity_number = identity_number.strip()
+        self.session.add(AuditLogRecord(operation="set_tenant_identity", entity_type="tenant", entity_id=tenant.id, details=str({"identity_type": tenant.identity_type, "identity_number": tenant.identity_number}), created_at=datetime.now(timezone.utc)))
         self.session.flush()
         return tenant
 
