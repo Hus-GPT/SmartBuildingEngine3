@@ -16,6 +16,7 @@ def main() -> None:
         settings.telegram_bot_token,
         settings.telegram_owner_id,
         session_factory,
+        settings.storage_dir,
     )
     application.run_polling(allowed_updates=None)
 
