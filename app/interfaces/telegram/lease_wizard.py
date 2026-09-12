@@ -40,9 +40,6 @@ async def newlease_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             tenant = session.get(TenantRecord, tenant_id)
             if not unit or not tenant:
                 raise BusinessRuleError("Unit or tenant does not exist.")
-            active = session.scalar(select(UnitRecord).where(UnitRecord.id == unit_id))
-            if not active:
-                raise BusinessRuleError("Unit does not exist.")
         finally:
             session.close()
         context.user_data["complete_lease"] = {"stage": "witness1", "unit_id": unit_id, "tenant_id": tenant_id, "start": start.isoformat(), "end": parts[3], "rent": str(rent), "deposit": str(deposit), "due": due, "payment_method": parts[7]}
@@ -76,6 +73,8 @@ async def lease_wizard_file(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         return
     state = context.user_data.get("complete_lease")
     if not state or state.get("stage") not in {"contract_file", "guarantee_file"}:
+        from app.interfaces.telegram.bot import receive_file
+        await receive_file(update, context)
         return
     message = update.effective_message
     storage_dir = Path(context.application.bot_data["storage_dir"])
