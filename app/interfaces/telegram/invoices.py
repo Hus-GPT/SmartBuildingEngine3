@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
+from io import BytesIO
 
 from sqlalchemy import select
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -9,7 +10,8 @@ from telegram.ext import ContextTypes
 
 from app.application.persistence_service import PersistenceService
 from app.domain.rules import BusinessRuleError
-from app.infrastructure.orm import LeaseRecord, UnitRecord
+from app.infrastructure.orm import LeaseRecord, TenantRecord, UnitRecord
+from app.infrastructure.pdf import InvoicePdfRenderer
 from app.settings import settings
 
 
@@ -58,8 +60,16 @@ async def invoice_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     try:
         service = PersistenceService(session)
         invoice = service.create_utility_invoice(unit_id=pending["unit_id"], period_start=date.fromisoformat(pending["start"]), period_end=date.fromisoformat(pending["end"]), electricity_previous=Decimal(pending["ep"]), electricity_current=Decimal(pending["ec"]), electricity_price=Decimal(pending["electricity_price"]), water_previous=Decimal(pending["wp"]), water_current=Decimal(pending["wc"]), water_price=Decimal(pending["water_price"]), shared_expenses=Decimal(pending["shared"]), arrears=Decimal(pending["arrears"]), note=pending["note"], invoice_number=pending["invoice_number"], confirmed=True)
+        total = service.invoice_total(invoice)
+        unit = session.get(UnitRecord, invoice.unit_id); tenant = session.get(TenantRecord, invoice.tenant_id)
         service.commit(); context.user_data.pop("pending_write", None)
-        await query.edit_message_text(f"✅ تم إصدار الفاتورة {invoice.invoice_number}.\nالحالة: ISSUED.\n\nالخطوة التالية: إنشاء PDF العربي وإرساله تلقائيًا.")
+        await query.edit_message_text(f"✅ تم إصدار الفاتورة {invoice.invoice_number}.\nالإجمالي: {total} {settings.currency}\nالحالة: ISSUED")
+        try:
+            renderer = InvoicePdfRenderer(settings.invoice_font_path)
+            pdf_bytes = renderer.render(invoice_number=invoice.invoice_number, tenant_name=tenant.name, unit_name=unit.name, period=f"{invoice.period_start} → {invoice.period_end}", electricity_usage=invoice.electricity_current-invoice.electricity_previous, electricity_amount=(invoice.electricity_current-invoice.electricity_previous)*invoice.electricity_price, water_usage=invoice.water_current-invoice.water_previous, water_amount=(invoice.water_current-invoice.water_previous)*invoice.water_price, shared_expenses=invoice.shared_expenses, arrears=invoice.arrears, total=total, currency=settings.currency)
+            await query.message.reply_document(document=BytesIO(pdf_bytes), filename=f"{invoice.invoice_number}.pdf", caption=f"🧾 {invoice.invoice_number}\nالإجمالي: {total} {settings.currency}")
+        except (FileNotFoundError, OSError, ValueError) as exc:
+            await query.message.reply_text(f"⚠️ أُصدرت الفاتورة بنجاح، لكن تعذر إنشاء PDF العربي في هذه البيئة: {exc}")
     except (BusinessRuleError, ValueError, PermissionError) as exc:
         session.rollback(); await query.edit_message_text(f"❌ لم تُصدر الفاتورة.\n\nالسبب: {exc}")
     finally: session.close()
