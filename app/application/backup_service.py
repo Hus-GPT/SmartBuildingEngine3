@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import shutil
 import sqlite3
 import tempfile
 import zipfile
@@ -19,18 +18,29 @@ class BackupService:
         self.storage_dir = Path(storage_dir)
         self.backup_dir = Path(backup_dir)
 
-    def create_latest(self) -> Path:
+    def _database_path(self) -> Path:
         parsed = urlparse(self.database_url)
         if parsed.scheme not in {"sqlite", "sqlite+pysqlite"}:
             raise BusinessRuleError("Current backup implementation supports SQLite only.")
-        db_path = Path(parsed.path)
+        database = parsed.path
+        if not database:
+            raise BusinessRuleError("SQLite database path is missing.")
+        # sqlite:///relative.db is a relative path; sqlite:////absolute.db is absolute.
+        if database.startswith("//"):
+            return Path("/") / database.lstrip("/")
+        return Path(database.lstrip("/"))
+
+    def create_latest(self) -> Path:
+        db_path = self._database_path()
         if not db_path.is_absolute():
             db_path = Path.cwd() / db_path
         if not db_path.exists():
-            raise BusinessRuleError("Database file does not exist yet.")
+            raise BusinessRuleError(f"Database file does not exist: {db_path}")
+
         self.backup_dir.mkdir(parents=True, exist_ok=True)
         for old in self.backup_dir.glob("smart-building-latest-*.zip"):
             old.unlink(missing_ok=True)
+
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         target = self.backup_dir / f"smart-building-latest-{stamp}.zip"
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -42,6 +52,7 @@ class BackupService:
             finally:
                 destination.close()
                 source.close()
+
             with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED) as archive:
                 archive.write(snapshot, "data/smart_building.db")
                 if self.storage_dir.exists():
