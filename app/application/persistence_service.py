@@ -92,9 +92,9 @@ class PersistenceService:
             raise BusinessRuleError("The unit has no active tenant/lease for this invoice period.")
         if self.session.scalar(select(InvoiceRecord).where(InvoiceRecord.invoice_number == invoice_number)):
             raise BusinessRuleError("Invoice number already exists.")
-        duplicate_period = self.session.scalar(select(InvoiceRecord).where(InvoiceRecord.unit_id == unit_id, InvoiceRecord.period_start == period_start, InvoiceRecord.period_end == period_end))
-        if duplicate_period:
-            raise BusinessRuleError("This unit already has an invoice for the same billing period.")
+        overlapping_period = self.session.scalar(select(InvoiceRecord).where(InvoiceRecord.unit_id == unit_id, InvoiceRecord.period_start <= period_end, InvoiceRecord.period_end >= period_start))
+        if overlapping_period:
+            raise BusinessRuleError("This unit already has an invoice whose billing period overlaps the requested period.")
         if electricity_current < electricity_previous or water_current < water_previous:
             raise BusinessRuleError("A meter reading cannot be lower than its previous reading.")
         invoice = InvoiceRecord(invoice_number=invoice_number, unit_id=unit_id, tenant_id=lease.tenant_id, period_start=period_start, period_end=period_end, electricity_previous=electricity_previous, electricity_current=electricity_current, electricity_price=electricity_price, water_previous=water_previous, water_current=water_current, water_price=water_price, shared_expenses=shared_expenses, arrears=arrears, note=note, status=InvoiceStatus.ISSUED.value)
