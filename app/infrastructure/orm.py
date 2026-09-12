@@ -29,6 +29,7 @@ class TenantRecord(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     phones: Mapped[list[TenantPhoneRecord]] = relationship(back_populates="tenant", cascade="all, delete-orphan")
     leases: Mapped[list[LeaseRecord]] = relationship(back_populates="tenant")
+    attachments: Mapped[list[FileRecord]] = relationship(back_populates="tenant")
 
 
 class TenantPhoneRecord(Base):
@@ -54,6 +55,19 @@ class LeaseRecord(Base):
     status: Mapped[str] = mapped_column(String(20), default="active", index=True)
     unit: Mapped[UnitRecord] = relationship(back_populates="leases")
     tenant: Mapped[TenantRecord] = relationship(back_populates="leases")
+    witnesses: Mapped[list[WitnessRecord]] = relationship(back_populates="lease", cascade="all, delete-orphan")
+    attachments: Mapped[list[FileRecord]] = relationship(back_populates="lease")
+
+
+class WitnessRecord(Base):
+    __tablename__ = "witnesses"
+    __table_args__ = (UniqueConstraint("lease_id", "witness_order", name="uq_lease_witness_order"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    lease_id: Mapped[int] = mapped_column(ForeignKey("leases.id"), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    phone: Mapped[str] = mapped_column(String(50))
+    witness_order: Mapped[int] = mapped_column(Integer)
+    lease: Mapped[LeaseRecord] = relationship(back_populates="witnesses")
 
 
 class MeterReadingRecord(Base):
@@ -113,7 +127,12 @@ class FileRecord(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     entity_type: Mapped[str] = mapped_column(String(100), index=True)
     entity_id: Mapped[int] = mapped_column(Integer, index=True)
+    tenant_id: Mapped[Optional[int]] = mapped_column(ForeignKey("tenants.id"), nullable=True, index=True)
+    lease_id: Mapped[Optional[int]] = mapped_column(ForeignKey("leases.id"), nullable=True, index=True)
+    attachment_type: Mapped[str] = mapped_column(String(50), default="OTHER", index=True)
     original_name: Mapped[str] = mapped_column(String(255))
     storage_path: Mapped[str] = mapped_column(String(1000))
     mime_type: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    tenant: Mapped[Optional[TenantRecord]] = relationship(back_populates="attachments")
+    lease: Mapped[Optional[LeaseRecord]] = relationship(back_populates="attachments")
