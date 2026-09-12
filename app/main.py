@@ -11,6 +11,7 @@ from app.interfaces.telegram.documents import document_callback, document_comman
 from app.interfaces.telegram.invoices import invoice_callback, invoice_command
 from app.interfaces.telegram.lease_lifecycle import endlease_command, expiring_command, lease_lifecycle_callback, renewlease_command
 from app.interfaces.telegram.lease_wizard import lease_wizard_callback, lease_wizard_file, lease_wizard_text, newlease_command
+from app.interfaces.telegram.main_meter import mainmeter_callback, mainmeter_command
 from app.interfaces.telegram.payments import payment_callback, pay_command
 from app.interfaces.telegram.reminders import lease_expiry_reminder_job
 from app.interfaces.telegram.reports import status_command
@@ -42,12 +43,14 @@ def main() -> None:
     application.add_handler(CommandHandler("backup", backup_command))
     application.add_handler(CommandHandler("tenantinfo", tenantinfo_command))
     application.add_handler(CommandHandler("tenantcheck", tenantcheck_command))
+    application.add_handler(CommandHandler("mainmeter", mainmeter_command))
     application.add_handler(CallbackQueryHandler(tenant_identity_callback, pattern=r"^tenant_identity_(confirm|cancel)$"), group=-1)
     application.add_handler(CallbackQueryHandler(invoice_callback, pattern=r"^invoice_(confirm|cancel)$"), group=-1)
     application.add_handler(CallbackQueryHandler(payment_callback, pattern=r"^payment_(confirm|cancel)$"), group=-1)
     application.add_handler(CallbackQueryHandler(document_callback, pattern=r"^document_(confirm|cancel)$"), group=-1)
     application.add_handler(CallbackQueryHandler(witness_callback, pattern=r"^witness_(confirm|cancel)$"), group=-1)
     application.add_handler(CallbackQueryHandler(lease_lifecycle_callback, pattern=r"^lease_lifecycle_(confirm|cancel):"), group=-1)
+    application.add_handler(CallbackQueryHandler(mainmeter_callback, pattern=r"^mainmeter_(confirm|cancel)$"), group=-1)
 
     # Yemen local time (UTC+3): check once daily at 08:00 and send each reminder once.
     application.job_queue.run_daily(
