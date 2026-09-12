@@ -4,6 +4,7 @@ from telegram.ext import CallbackQueryHandler, CommandHandler
 
 from app.infrastructure.database import build_database, initialize_database
 from app.interfaces.telegram.bot import build_telegram_application
+from app.interfaces.telegram.documents import document_callback, document_command, witness_callback, witness_command
 from app.interfaces.telegram.invoices import invoice_callback, invoice_command
 from app.interfaces.telegram.payments import payment_callback, pay_command
 from app.settings import settings
@@ -19,8 +20,12 @@ def main() -> None:
     application = build_telegram_application(settings.telegram_bot_token, settings.telegram_owner_id, session_factory, settings.storage_dir)
     application.add_handler(CommandHandler("invoice", invoice_command))
     application.add_handler(CommandHandler("pay", pay_command))
+    application.add_handler(CommandHandler("doc", document_command))
+    application.add_handler(CommandHandler("witness", witness_command))
     application.add_handler(CallbackQueryHandler(invoice_callback, pattern=r"^invoice_(confirm|cancel)$"), group=-1)
     application.add_handler(CallbackQueryHandler(payment_callback, pattern=r"^payment_(confirm|cancel)$"), group=-1)
+    application.add_handler(CallbackQueryHandler(document_callback, pattern=r"^document_(confirm|cancel)$"), group=-1)
+    application.add_handler(CallbackQueryHandler(witness_callback, pattern=r"^witness_(confirm|cancel)$"), group=-1)
     application.run_polling(allowed_updates=None)
 
 
