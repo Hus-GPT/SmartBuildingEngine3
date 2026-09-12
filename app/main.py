@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import time, timedelta, timezone
+
 from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler, filters
 
 from app.infrastructure.database import build_database, initialize_database
@@ -10,6 +12,7 @@ from app.interfaces.telegram.invoices import invoice_callback, invoice_command
 from app.interfaces.telegram.lease_lifecycle import endlease_command, expiring_command, lease_lifecycle_callback, renewlease_command
 from app.interfaces.telegram.lease_wizard import lease_wizard_callback, lease_wizard_file, lease_wizard_text, newlease_command
 from app.interfaces.telegram.payments import payment_callback, pay_command
+from app.interfaces.telegram.reminders import lease_expiry_reminder_job
 from app.interfaces.telegram.reports import status_command
 from app.interfaces.telegram.tenants import tenant_identity_callback, tenantinfo_command, tenantcheck_command
 from app.settings import settings
@@ -45,6 +48,13 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(document_callback, pattern=r"^document_(confirm|cancel)$"), group=-1)
     application.add_handler(CallbackQueryHandler(witness_callback, pattern=r"^witness_(confirm|cancel)$"), group=-1)
     application.add_handler(CallbackQueryHandler(lease_lifecycle_callback, pattern=r"^lease_lifecycle_(confirm|cancel):"), group=-1)
+
+    # Yemen local time (UTC+3): check once daily at 08:00 and send each reminder once.
+    application.job_queue.run_daily(
+        lease_expiry_reminder_job,
+        time=time(8, 0, tzinfo=timezone(timedelta(hours=3))),
+        name="lease-expiry-reminders",
+    )
     application.run_polling(allowed_updates=None)
 
 
