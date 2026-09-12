@@ -9,6 +9,7 @@ from app.interfaces.telegram.invoices import invoice_callback, invoice_command
 from app.interfaces.telegram.lease_lifecycle import endlease_command, expiring_command, lease_lifecycle_callback, renewlease_command
 from app.interfaces.telegram.lease_wizard import lease_wizard_callback, lease_wizard_file, lease_wizard_text, newlease_command
 from app.interfaces.telegram.payments import payment_callback, pay_command
+from app.interfaces.telegram.reports import status_command
 from app.settings import settings
 
 
@@ -31,6 +32,7 @@ def main() -> None:
     application.add_handler(CommandHandler("endlease", endlease_command))
     application.add_handler(CommandHandler("renewlease", renewlease_command))
     application.add_handler(CommandHandler("expiring", expiring_command))
+    application.add_handler(CommandHandler("status", status_command))
     application.add_handler(CallbackQueryHandler(invoice_callback, pattern=r"^invoice_(confirm|cancel)$"), group=-1)
     application.add_handler(CallbackQueryHandler(payment_callback, pattern=r"^payment_(confirm|cancel)$"), group=-1)
     application.add_handler(CallbackQueryHandler(document_callback, pattern=r"^document_(confirm|cancel)$"), group=-1)
