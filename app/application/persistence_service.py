@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.domain.models import InvoiceStatus, LeaseStatus, MeterType, UnitType
 from app.domain.rules import BusinessRuleError, ensure_one_active_lease, validate_meter_reading, validate_payment_amount
-from app.infrastructure.orm import AuditLogRecord, InvoiceRecord, LeaseRecord, MeterReadingRecord, PaymentRecord, TenantPhoneRecord, TenantRecord, UnitRecord
+from app.infrastructure.orm import AuditLogRecord, BuildingMeterReadingRecord, InvoiceRecord, LeaseRecord, MeterReadingRecord, PaymentRecord, TenantPhoneRecord, TenantRecord, UnitRecord
 
 
 class PersistenceService:
@@ -74,6 +74,20 @@ class PersistenceService:
         self.session.add(reading)
         self.session.flush()
         self._audit("create_meter_reading", "meter_reading", reading.id, {"unit_id": unit_id, "meter_type": meter_type.value, "value": str(value)})
+        return reading
+
+    def add_building_meter_reading(self, meter_type: MeterType, reading_date: date, value: Decimal, confirmed: bool) -> BuildingMeterReadingRecord:
+        if not confirmed:
+            raise PermissionError("Explicit confirmation is required before saving a building meter reading.")
+        if value < 0:
+            raise BusinessRuleError("Meter reading cannot be negative.")
+        previous = self.session.scalar(select(BuildingMeterReadingRecord).where(BuildingMeterReadingRecord.meter_type == meter_type.value).order_by(BuildingMeterReadingRecord.reading_date.desc(), BuildingMeterReadingRecord.id.desc()))
+        if previous:
+            validate_meter_reading(previous.value, value)
+        reading = BuildingMeterReadingRecord(meter_type=meter_type.value, reading_date=reading_date, value=value)
+        self.session.add(reading)
+        self.session.flush()
+        self._audit("create_building_meter_reading", "building_meter_reading", reading.id, {"meter_type": meter_type.value, "value": str(value)})
         return reading
 
     def create_utility_invoice(self, *, unit_id: int, period_start: date, period_end: date, electricity_previous: Decimal, electricity_current: Decimal, electricity_price: Decimal, water_previous: Decimal, water_current: Decimal, water_price: Decimal, shared_expenses: Decimal, arrears: Decimal, note: str | None, invoice_number: str, confirmed: bool) -> InvoiceRecord:
