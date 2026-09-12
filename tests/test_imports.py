@@ -1,0 +1,9 @@
+def test_application_modules_import():
+    import app.main
+    import app.application.backup_service
+    import app.application.building_report_service
+    import app.application.complete_lease_service
+    import app.application.lease_lifecycle_service
+    import app.interfaces.telegram.lease_lifecycle
+    import app.interfaces.telegram.lease_wizard
+    import app.interfaces.telegram.reports
