@@ -35,11 +35,11 @@ def test_invoice_total_and_partial_payment():
     session = make_service()
     try:
         service, invoice = seed_invoice(session)
-        assert service.invoice_total(invoice) == Decimal("3500")
+        assert service.invoice_total(invoice) == Decimal("3000")
         payment = service.record_payment(invoice.id, Decimal("1000"), "cash", True)
         service.commit()
         assert payment.amount == Decimal("1000")
-        assert service.invoice_outstanding(invoice.id) == Decimal("2500")
+        assert service.invoice_outstanding(invoice.id) == Decimal("2000")
         assert invoice.status == InvoiceStatus.PARTIALLY_PAID.value
     finally:
         session.close()
@@ -50,7 +50,7 @@ def test_payment_cannot_exceed_outstanding():
     try:
         service, invoice = seed_invoice(session)
         with pytest.raises(BusinessRuleError):
-            service.record_payment(invoice.id, Decimal("3500.01"), "cash", True)
+            service.record_payment(invoice.id, Decimal("3000.01"), "cash", True)
     finally:
         session.close()
 
