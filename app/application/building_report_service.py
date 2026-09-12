@@ -23,7 +23,6 @@ class BuildingReportService:
             if not lease:
                 result.append({"unit_id": unit.id, "number": unit.number, "name": unit.name, "type": unit.unit_type, "status": "vacant", "tenant_id": None, "tenant_name": None, "outstanding": Decimal("0")})
                 continue
-            outstanding = self.session.scalar(select(func.coalesce(func.sum(InvoiceRecord.electricity_current - InvoiceRecord.electricity_previous), 0)).where(InvoiceRecord.id == -1)) or Decimal("0")
             invoices = self.session.scalars(select(InvoiceRecord).where(InvoiceRecord.unit_id == unit.id, InvoiceRecord.tenant_id == lease.tenant_id)).all()
             total_due = Decimal("0")
             for invoice in invoices:
