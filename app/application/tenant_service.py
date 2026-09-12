@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.domain.rules import BusinessRuleError
-from app.infrastructure.orm import AuditLogRecord, TenantRecord
+from app.infrastructure.orm import AuditLogRecord, FileRecord, TenantRecord
 
 
 class TenantService:
@@ -32,7 +33,11 @@ class TenantService:
         tenant = self.session.get(TenantRecord, tenant_id)
         if not tenant:
             raise BusinessRuleError("Tenant does not exist.")
-        types = {f.attachment_type for f in tenant.attachments}
+        types = set(
+            self.session.scalars(
+                select(FileRecord.attachment_type).where(FileRecord.tenant_id == tenant_id)
+            ).all()
+        )
         missing = []
         if not tenant.identity_type:
             missing.append("identity_type")
