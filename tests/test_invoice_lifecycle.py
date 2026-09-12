@@ -71,6 +71,22 @@ def test_duplicate_billing_period_is_rejected():
         session.close()
 
 
+def test_overlapping_billing_period_is_rejected():
+    session = make_service()
+    try:
+        service, invoice = seed_invoice(session)
+        with pytest.raises(BusinessRuleError):
+            service.create_utility_invoice(
+                unit_id=invoice.unit_id, period_start=date(2026, 9, 15), period_end=date(2026, 10, 14),
+                electricity_previous=Decimal("120"), electricity_current=Decimal("130"), electricity_price=Decimal("50"),
+                water_previous=Decimal("25"), water_current=Decimal("30"), water_price=Decimal("100"),
+                shared_expenses=Decimal("0"), arrears=Decimal("0"), note=None,
+                invoice_number="INV-TEST-003", confirmed=True,
+            )
+    finally:
+        session.close()
+
+
 def test_issued_invoice_is_immutable_for_business_edits():
     session = make_service()
     try:
