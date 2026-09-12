@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
-from .models import InvoiceStatus, LeaseStatus, MeterReading
+from .models import InvoiceStatus, LeaseStatus
 
 
 class BusinessRuleError(ValueError):
@@ -12,9 +12,7 @@ class BusinessRuleError(ValueError):
 
 def validate_meter_reading(previous: Decimal, current: Decimal) -> None:
     if current < previous:
-        raise BusinessRuleError(
-            f"Meter reading cannot decrease: previous={previous}, current={current}"
-        )
+        raise BusinessRuleError(f"Meter reading cannot decrease: previous={previous}, current={current}")
 
 
 def validate_active_lease(end_date: date | None, status: LeaseStatus) -> None:
@@ -23,13 +21,15 @@ def validate_active_lease(end_date: date | None, status: LeaseStatus) -> None:
 
 
 def validate_invoice_mutable(status: InvoiceStatus) -> None:
-    if status is InvoiceStatus.ARCHIVED:
-        raise BusinessRuleError("Archived invoices are immutable and cannot be edited.")
+    if status in {InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.PAID, InvoiceStatus.OVERDUE, InvoiceStatus.ARCHIVED}:
+        raise BusinessRuleError("Issued and archived invoices are immutable. Create a correction record instead of editing the invoice.")
 
 
 def validate_payment_amount(amount: Decimal, outstanding: Decimal) -> None:
     if amount <= 0:
         raise BusinessRuleError("Payment amount must be greater than zero.")
+    if outstanding <= 0:
+        raise BusinessRuleError("The invoice has no outstanding balance.")
     if amount > outstanding:
         raise BusinessRuleError("Payment cannot exceed the outstanding invoice balance.")
 
